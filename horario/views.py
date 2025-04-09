@@ -7,6 +7,10 @@ import io
 import environ
 import os
 from pathlib import Path
+from django.contrib.auth.hashers import make_password
+import unicodedata
+
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'), True)
@@ -16,10 +20,16 @@ env = environ.Env()
 def index(request):
     return render(request, 'horario/index.html')
 
-def importar_horarios_desde_archivo():
+def quitar_tildes(texto):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', texto)
+        if unicodedata.category(c) != 'Mn'
+    )
+
+def importar_horarios_desde_archivo(request):
     ruta = env('RUTA_TXT')
 
-    with open(ruta, encoding='utf-8') as archivo:
+    with open(ruta, encoding='latin-1') as archivo:
         contenido = archivo.read()
     
     lineas = io.StringIO(contenido)
@@ -34,19 +44,52 @@ def importar_horarios_desde_archivo():
         asignatura_nombre = fila[0].strip()
         curso = fila[1].strip()
         codigo = fila[2].strip()
-        profesor_nombre = fila[3].strip()
+        profesor_nombre_apellidos = fila[3].strip()
         dia = fila[4].strip()
         hora = fila[5].strip()
+        
+        apellidos, nombre = [parte.strip() for parte in profesor_nombre_apellidos.split(",", 1)]
+        apellidos = quitar_tildes(apellidos)
+        nombre = quitar_tildes(nombre)
+        
+        primer_apellido = apellidos.split()[0].lower()
+        username = username = (nombre + apellidos).replace(" ", "")
 
-        asignatura, _ = Asignatura.objects.get_or_create(nombre=asignatura_nombre)
-        aula, _ = Aula.objects.get_or_create(numero=codigo)
-        grupo, _ = Grupo.objects.get_or_create(nombre=curso)
+        email = nombre.lower().replace(" ", "")+"."+primer_apellido+"@iespoligonosur.org"
+        
+        profesor = Usuario.objects.filter(username=username).first()
+        
+        if not profesor:
+            try:
+                profesor = Usuario.objects.create(
+                username=username,
+                password = make_password("changeme123"),
+                first_name=nombre,
+                last_name=apellidos,
+                email=email,
+                rol=2
+                )
+            except Exception as e:
+                print(f"Error al crear el usuario: {e}")
+        
+        
+        asignatura = Asignatura.objects.filter(nombre=asignatura_nombre).first()
+        if not asignatura:
+            asignatura = Asignatura.objects.create(nombre=asignatura_nombre)
 
-        try:
+        aula = Aula.objects.filter(numero=codigo).first()
+        if not aula:
+            aula = Aula.objects.create(numero=codigo)
+
+        grupo = Grupo.objects.filter(nombre=curso).first()
+        if not grupo:
+            grupo = Grupo.objects.create(nombre=curso)
+
+        """try:
             profesor = Usuario.objects.get(username=profesor_nombre)
         except Usuario.DoesNotExist:
             errores.append(f"Fila {i}: Profesor '{profesor_nombre}' no encontrado.")
-            continue
+            continue"""
 
         data = {
             "dia": dia,
