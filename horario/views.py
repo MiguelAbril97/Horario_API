@@ -18,7 +18,7 @@ env = environ.Env()
 
 # Create your views here.
 def index(request):
-    return render(request, 'horario/index.html')
+    return redirect('obtener_horario')
 
 def quitar_tildes(texto):
     return ''.join(
@@ -46,7 +46,7 @@ def importar_horarios_desde_archivo(request):
         codigo = fila[2].strip()
         profesor_nombre_apellidos = fila[3].strip()
         dia = fila[4].strip()
-        hora = fila[5].strip()
+        hora = int(fila[5].strip())
         
         apellidos, nombre = [parte.strip() for parte in profesor_nombre_apellidos.split(",", 1)]
         apellidos = quitar_tildes(apellidos)
@@ -69,6 +69,7 @@ def importar_horarios_desde_archivo(request):
                 email=email,
                 rol=2
                 )
+                print("Profesor: "+nombre+" creado")
             except Exception as e:
                 print(f"Error al crear el usuario: {e}")
         
@@ -84,12 +85,6 @@ def importar_horarios_desde_archivo(request):
         grupo = Grupo.objects.filter(nombre=curso).first()
         if not grupo:
             grupo = Grupo.objects.create(nombre=curso)
-
-        """try:
-            profesor = Usuario.objects.get(username=profesor_nombre)
-        except Usuario.DoesNotExist:
-            errores.append(f"Fila {i}: Profesor '{profesor_nombre}' no encontrado.")
-            continue"""
 
         data = {
             "dia": dia,
@@ -107,4 +102,16 @@ def importar_horarios_desde_archivo(request):
 
     if errores:
         return print("Errores:\n" + "\n".join(errores), content_type="text/plain")
-    return print("Importación exitosa", content_type="text/plain")
+    return redirect('obtener_horario')
+
+def obtener_horario(request):
+    horarios = Horario.objects.prefetch_related('asignatura','aula','grupo','profesor')
+    return render(request,'horario/ver_horario.html',{'horarios':horarios})
+
+def horario_profe(request,id_usuario):
+    horarios = Horario.objects.prefetch_related('asignatura','aula','grupo','profesor').filter(profesor=id_usuario).all()
+    return render(request,'horario/ver_horario.html',{'horarios':horarios})
+
+def horarios_tarde(request):
+    horarios = Horario.objects.prefetch_related('asignatura','aula','grupo','profesor').filter(hora__gt=7).all()
+    return render(request,'horario/ver_horario.html',{'horarios':horarios})

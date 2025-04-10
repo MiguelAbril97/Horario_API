@@ -44,5 +44,5 @@ class Horario(models.Model):
     asignatura = models.ForeignKey(Asignatura, on_delete=models.CASCADE)
     aula = models.ForeignKey(Aula, on_delete=models.CASCADE)
     grupo = models.ForeignKey(Grupo, on_delete=models.CASCADE)
-    hora = models.CharField(max_length=1)
+    hora = models.IntegerField(default=1)
     profesor = models.ForeignKey(Usuario, on_delete=models.CASCADE)
