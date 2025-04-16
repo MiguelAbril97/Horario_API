@@ -1,12 +1,11 @@
 from django.urls import path
 from . import views
 
-
 urlpatterns = [
-    path('', views.index, name='index'),
-    path('horario',views.obtener_horario,name='obtener_horario'),
-    path('horario_profe/<int:id_usuario>/',views.horario_profe,name='horario_profe'),
-    path('horarios_tarde/',views.horarios_tarde,name='horarios_tarde'),
-    path('importar', views.importar_horarios_desde_archivo, name='importar'),
+    path('api/horarios/', views.obtener_horario, name='api_obtener_horario'),
+    path('api/horarios/tarde/', views.horarios_tarde, name='api_horarios_tarde'),
+    path('api/horarios/profesor/<int:id_usuario>/', views.horario_profe, name='api_horario_profe'),
+    path('api/profesores/', views.obtener_profesores, name='api_hobtener_profesores'),
+    path('api/profesor/<int:id_usuario>/', views.obtener_profesor, name='api_obtener_profesor'),
 
 ]

@@ -1,7 +1,11 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import redirect
 from .models import *
-from django.contrib import messages
-from .serializers import HorarioSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.db.models import Q
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import *
 import csv
 import io
 import environ
@@ -104,14 +108,38 @@ def importar_horarios_desde_archivo(request):
         return print("Errores:\n" + "\n".join(errores), content_type="text/plain")
     return redirect('obtener_horario')
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def obtener_horario(request):
-    horarios = Horario.objects.prefetch_related('asignatura','aula','grupo','profesor')
-    return render(request,'horario/ver_horario.html',{'horarios':horarios})
+    horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').all()
+    serializer = HorarioSerializer(horarios, many=True)
+    return Response(serializer.data)
 
-def horario_profe(request,id_usuario):
-    horarios = Horario.objects.prefetch_related('asignatura','aula','grupo','profesor').filter(profesor=id_usuario).all()
-    return render(request,'horario/ver_horario.html',{'horarios':horarios})
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def horario_profe(request, id_usuario):
+    horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').filter(profesor=id_usuario).all()
+    serializer = HorarioSerializer(horarios, many=True)
+    return Response(serializer.data)
 
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def horarios_tarde(request):
-    horarios = Horario.objects.prefetch_related('asignatura','aula','grupo','profesor').filter(hora__gt=7).all()
-    return render(request,'horario/ver_horario.html',{'horarios':horarios})
+    horarios = Horario.objects.filter(hora__gt=7)
+    serializer = HorarioSerializer(horarios, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_profesores(request):
+    usuarios = Usuario.objects.all()
+    serializer = UsuarioSerializer(usuarios, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_profesor(request,id_usuario):
+    usuario = Usuario.objects.get(id=id_usuario)
+    serializer = UsuarioSerializer(usuario)
+    return Response(serializer.data)
+
