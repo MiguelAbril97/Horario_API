@@ -13,6 +13,10 @@ import os
 from pathlib import Path
 from django.contrib.auth.hashers import make_password
 import unicodedata
+from rest_framework import generics
+from django.contrib.auth.models import Group
+from oauth2_provider.models import AccessToken     
+
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,10 +43,9 @@ def importar_horarios_desde_archivo(request):
     lineas = io.StringIO(contenido)
     lector = csv.reader(lineas, delimiter="\t")
 
-    errores = []
     for i, fila in enumerate(lector, start=1):
         if len(fila) < 6:
-            errores.append(f"Fila {i}: estructura de datos inválida.")
+            print(f"Fila {i}: estructura de datos inválida.")
             continue
         
         asignatura_nombre = fila[0].strip()
@@ -51,8 +54,11 @@ def importar_horarios_desde_archivo(request):
         profesor_nombre_apellidos = fila[3].strip()
         dia = fila[4].strip()
         hora = int(fila[5].strip())
-        
-        apellidos, nombre = [parte.strip() for parte in profesor_nombre_apellidos.split(",", 1)]
+        try:
+            apellidos, nombre = [parte.strip() for parte in profesor_nombre_apellidos.split(",", 1)]
+        except ValueError:
+            print(f"Fila {i}: nombre y apellidos no válidos.")
+
         apellidos = quitar_tildes(apellidos)
         nombre = quitar_tildes(nombre)
         
@@ -63,19 +69,42 @@ def importar_horarios_desde_archivo(request):
         
         profesor = Usuario.objects.filter(username=username).first()
         
+        if asignatura_nombre == "Equipo Directivo":
+                rol = Usuario.DIRECTOR
+        else:
+                rol = Usuario.PROFESOR
+        
         if not profesor:
             try:
                 profesor = Usuario.objects.create(
                 username=username,
-                password = make_password("changeme123"),
+                password = "changeme123",
                 first_name=nombre,
                 last_name=apellidos,
                 email=email,
-                rol=2
+                rol=rol
                 )
-                print("Profesor: "+nombre+" creado")
+                
+                if rol == Usuario.DIRECTOR:
+                    group = Group.objects.get(name="Directores")
+                    group.user_set.add(profesor)
+                    director = Director.objects.create(usuario=profesor)
+                    director.save()
+                    print("Director: "+nombre+" creado")
+                else:
+                    group = Group.objects.get(name="Profesores")
+                    group.user_set.add(profesor)
+                    profesorado = Profesor.objects.create(usuario=profesor)
+                    profesorado.save()
+                    print("Profesor: "+nombre+" creado")
+
             except Exception as e:
                 print(f"Error al crear el usuario: {e}")
+        
+        elif rol == Usuario.DIRECTOR and profesor.rol != rol:
+            profesor.rol = rol
+            profesor.save()
+            print("Rol de profesor actualizado: "+nombre)
         
         
         asignatura = Asignatura.objects.filter(nombre=asignatura_nombre).first()
@@ -98,14 +127,11 @@ def importar_horarios_desde_archivo(request):
             "hora": hora,
             "profesor": profesor.id,
         }
-        serializer = HorarioSerializer(data=data)
+        serializer = HorarioCreateSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
         else:
-            errores.append(f"Fila {i}: {serializer.errors}")
-
-    if errores:
-        return print("Errores:\n" + "\n".join(errores), content_type="text/plain")
+            print(f"Fila {i}: {serializer.errors}")
     return redirect('obtener_horario')
 
 @api_view(['GET'])
@@ -132,7 +158,7 @@ def horarios_tarde(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def obtener_profesores(request):
-    usuarios = Usuario.objects.all()
+    usuarios = Usuario.objects.first()
     serializer = UsuarioSerializer(usuarios, many=True)
     return Response(serializer.data)
 
@@ -143,3 +169,11 @@ def obtener_profesor(request,id_usuario):
     serializer = UsuarioSerializer(usuario)
     return Response(serializer.data)
 
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_usuario_token(request,token):
+    ModeloToken = AccessToken.objects.get(token=token)
+    usuario = Usuario.objects.get(id=ModeloToken.user_id)
+    serializer = UsuarioSerializer(usuario)
+    return Response(serializer.data)

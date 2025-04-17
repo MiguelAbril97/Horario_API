@@ -31,3 +31,8 @@ class HorarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Horario
         fields = '__all__'
+
+class HorarioCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Horario
+        fields = ['dia', 'asignatura', 'aula', 'grupo', 'hora', 'profesor']

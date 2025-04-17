@@ -14,6 +14,12 @@ class Usuario(AbstractUser):
     def __str__(self):
         return self.username
 
+class Director (models.Model):
+    models.ForeignKey(Usuario, on_delete=models.CASCADE)
+
+class Profesor(models.Model):
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+
 class Asignatura(models.Model):
     nombre = models.CharField(max_length=100)
     

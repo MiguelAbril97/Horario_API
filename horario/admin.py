@@ -3,3 +3,5 @@ from django.contrib.auth.admin import UserAdmin
 from .models import *
 
 admin.site.register(Usuario, UserAdmin)
+admin.site.register(Director)
+admin.site.register(Profesor)
