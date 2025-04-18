@@ -52,3 +52,11 @@ class Horario(models.Model):
     grupo = models.ForeignKey(Grupo, on_delete=models.CASCADE)
     hora = models.IntegerField(default=1)
     profesor = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    
+class Ausencia(models.Model):
+    profesor = models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    fecha = models.DateField()
+    motivo = models.CharField(max_length=200,blank=True)
+    horario = models.ForeignKey(Horario, on_delete=models.CASCADE)
+    def __str__(self):
+        return f"{self.profesor.username} - {self.fecha}"

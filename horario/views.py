@@ -150,6 +150,15 @@ def horario_profe(request, id_usuario):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def horario_profe_dia(request, id_usuario,dia):
+    horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura'
+                                              ).filter(profesor=id_usuario,dia=dia).all()
+    serializer = HorarioSerializer(horarios, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def horarios_tarde(request):
     horarios = Horario.objects.filter(hora__gt=7)
     serializer = HorarioSerializer(horarios, many=True)
@@ -158,9 +167,17 @@ def horarios_tarde(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def obtener_profesores(request):
-    usuarios = Usuario.objects.first()
+    usuarios = Usuario.objects.all()
     serializer = UsuarioSerializer(usuarios, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_horario_dia(request,dia):
+    usuarios = Horario.objects.filter(dia=dia).all()
+    serializer = HorarioSerializer(usuarios, many=True)
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -168,6 +185,75 @@ def obtener_profesor(request,id_usuario):
     usuario = Usuario.objects.get(id=id_usuario)
     serializer = UsuarioSerializer(usuario)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def crear_ausencia(request):
+    serializer = AusenciaCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        try:
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_ausencias(request):
+    ausencias = Ausencia.objects.select_related('profesor','horario').all()
+    serializer = AusenciaSerializer(ausencias, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_ausencias_profesor(request,id_profesor):
+    ausencias = Ausencia.objects.select_related('profesor','horario').filter(profesor=id_profesor).all()
+    serializer = AusenciaSerializer(ausencias, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_ausencias_fecha(request,fecha):
+    print(fecha)
+    ausencias = Ausencia.objects.select_related('profesor','horario').filter(fecha=fecha).all()
+    serializer = AusenciaSerializer(ausencias, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def obtener_ausencia(request,id_ausencia):
+    ausencia = Ausencia.objects.select_related('profesor','horario').get(id=id_ausencia)
+    serializer = AusenciaSerializer(ausencia)
+    return Response(serializer.data)
+
+@api_view(['PUT'])
+@permission_classes([AllowAny])
+def editar_ausencia(request, id_ausencia):
+    ausencia = Ausencia.objects.get(id=id_ausencia)
+    serializer = AusenciaCreateSerializer(ausencia, data=request.data)
+    if serializer.is_valid():
+        try:
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+@permission_classes([AllowAny])
+def eliminar_ausencia(request, id_ausencia):
+    try:
+        ausencia = Ausencia.objects.get(id=id_ausencia)
+        ausencia.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except Ausencia.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(['GET'])
