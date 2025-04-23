@@ -15,7 +15,7 @@ class Usuario(AbstractUser):
         return self.username
 
 class Director (models.Model):
-    models.ForeignKey(Usuario, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
 
 class Profesor(models.Model):
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
