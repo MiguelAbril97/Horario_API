@@ -79,14 +79,15 @@ def importar_horarios_desde_archivo(request):
         
         if not usuario:
             try:
-                usuario = Usuario.objects.create(
-                username=username,
-                password = "changeme123",
-                first_name=nombre,
-                last_name=apellidos,
-                email=email,
-                rol=rol
+                usuario = Usuario(
+                    username=username,
+                    first_name=nombre,
+                    last_name=apellidos,
+                    email=email,
+                    rol=rol
                 )
+                usuario.set_password("changeme123")
+                usuario.save()
                 
                 if rol == Usuario.DIRECTOR:
                     group = Group.objects.get(name="Directores")
@@ -156,60 +157,78 @@ def importar_horarios_desde_archivo(request):
     return Response(serializer.data)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def obtener_horario(request):
-    horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').all()
-    serializer = HorarioSerializer(horarios, many=True)
-    return Response(serializer.data)
+    if request.user.has_perm('horario.view_horario'):
+        horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').all()
+        serializer = HorarioSerializer(horarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def horario_profe(request, id_usuario):
-    horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').filter(profesor=id_usuario).all()
-    serializer = HorarioSerializer(horarios, many=True)
-    return Response(serializer.data)
+    if request.user.has_perm('horario.view_horario'):
+        horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').filter(profesor=id_usuario).all()
+        serializer = HorarioSerializer(horarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def horario_profe_dia(request, id_usuario,dia):
-    horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura'
-                                              ).filter(profesor=id_usuario,dia=dia).all()
-    serializer = HorarioSerializer(horarios, many=True)
-    return Response(serializer.data)
-
+@permission_classes([IsAuthenticated])
+def horario_profe_dia(request, id_usuario, dia):
+    if request.user.has_perm('horario.view_horario'):
+        horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura'
+                                                  ).filter(profesor=id_usuario, dia=dia).all()
+        serializer = HorarioSerializer(horarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def horarios_tarde(request):
-    horarios = Horario.objects.filter(hora__gt=7)
-    serializer = HorarioSerializer(horarios, many=True)
-    return Response(serializer.data)
+    if request.user.has_perm('horario.view_horario'):
+        horarios = Horario.objects.filter(hora__gt=7)
+        serializer = HorarioSerializer(horarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def obtener_profesores(request):
-    usuarios = Usuario.objects.all()
-    serializer = UsuarioSerializer(usuarios, many=True)
-    return Response(serializer.data)
+    if request.user.has_perm('horario.view_usuario'):
+        usuarios = Usuario.objects.all().order_by('last_name')
+        serializer = UsuarioSerializer(usuarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def obtener_horario_dia(request,dia):
-    usuarios = Horario.objects.filter(dia=dia).all()
-    serializer = HorarioSerializer(usuarios, many=True)
-    return Response(serializer.data)
-
+@permission_classes([IsAuthenticated])
+def obtener_horario_dia(request, dia):
+    if request.user.has_perm('horario.view_horario'):
+        usuarios = Horario.objects.filter(dia=dia).all()
+        serializer = HorarioSerializer(usuarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def obtener_profesor(request,id_usuario):
-    usuario = Usuario.objects.get(id=id_usuario)
-    serializer = UsuarioSerializer(usuario)
-    return Response(serializer.data)
-
+@permission_classes([IsAuthenticated])
+def obtener_profesor(request, id_usuario):
+    if request.user.has_perm('horario.view_usuario'):
+        usuario = Usuario.objects.get(id=id_usuario)
+        serializer = UsuarioSerializer(usuario)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def crear_ausencia(request):
     serializer = AusenciaCreateSerializer(data=request.data)
     if serializer.is_valid():
@@ -219,40 +238,50 @@ def crear_ausencia(request):
         except Exception as e:
             return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors)
     
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def obtener_ausencias(request):
-    ausencias = Ausencia.objects.select_related('profesor','horario').all()
-    serializer = AusenciaSerializer(ausencias, many=True)
-    return Response(serializer.data)
+    if request.user.has_perm('horario.view_ausencias'):
+        ausencias = Ausencia.objects.select_related('profesor','horario').all()
+        serializer = AusenciaSerializer(ausencias, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def obtener_ausencias_profesor(request,id_profesor):
-    ausencias = Ausencia.objects.select_related('profesor','horario').filter(profesor=id_profesor).all()
-    serializer = AusenciaSerializer(ausencias, many=True)
-    return Response(serializer.data)
+@permission_classes([IsAuthenticated])
+def obtener_ausencias_profesor(request, id_profesor):
+    if request.user.has_perm('horario.view_ausencias'):
+        ausencias = Ausencia.objects.select_related('profesor','horario').filter(profesor=id_profesor).all()
+        serializer = AusenciaSerializer(ausencias, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def obtener_ausencias_fecha(request,fecha):
-    print(fecha)
-    ausencias = Ausencia.objects.select_related('profesor','horario').filter(fecha=fecha).all()
-    serializer = AusenciaSerializer(ausencias, many=True)
-    return Response(serializer.data)
+@permission_classes([IsAuthenticated])
+def obtener_ausencias_fecha(request, fecha):
+    if request.user.has_perm('horario.view_ausencia'):
+        ausencias = Ausencia.objects.select_related('profesor','horario').filter(fecha=fecha).all()
+        serializer = AusenciaSerializer(ausencias, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def obtener_ausencia(request,id_ausencia):
-    ausencia = Ausencia.objects.select_related('profesor','horario').get(id=id_ausencia)
-    serializer = AusenciaSerializer(ausencia)
-    return Response(serializer.data)
-
+@permission_classes([IsAuthenticated])
+def obtener_ausencia(request, id_ausencia):
+    if request.user.has_perm('horario.view_horario'):
+        ausencia = Ausencia.objects.select_related('profesor','horario').get(id=id_ausencia)
+        serializer = AusenciaSerializer(ausencia)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def editar_ausencia(request, id_ausencia):
     ausencia = Ausencia.objects.get(id=id_ausencia)
     serializer = AusenciaCreateSerializer(ausencia, data=request.data)
@@ -263,10 +292,10 @@ def editar_ausencia(request, id_ausencia):
         except Exception as e:
             return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     else:
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors)
 
 @api_view(['DELETE'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def eliminar_ausencia(request, id_ausencia):
     try:
         ausencia = Ausencia.objects.get(id=id_ausencia)
@@ -277,10 +306,8 @@ def eliminar_ausencia(request, id_ausencia):
     except Exception as e:
         return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
 @api_view(['GET'])
-@permission_classes([AllowAny])
-def obtener_usuario_token(request,token):
+def obtener_usuario_token(request, token):
     ModeloToken = AccessToken.objects.get(token=token)
     usuario = Usuario.objects.get(id=ModeloToken.user_id)
     serializer = UsuarioSerializer(usuario)
