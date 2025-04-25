@@ -156,6 +156,80 @@ def importar_horarios_desde_archivo(request):
     serializer = HorarioSerializer(horarios, many=True)
     return Response(serializer.data)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def crear_usuario(request):
+    serializer = UsuarioCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        try:
+            usuario = serializer.save()
+            rol = serializer.validated_data['rol']
+            if rol == Usuario.DIRECTOR:
+                group = Group.objects.get(name="Directores")
+                group.user_set.add(usuario)
+                director = Director.objects.create(usuario=usuario)
+                director.save()
+            elif rol == Usuario.PROFESOR:
+                group = Group.objects.get(name="Profesores")
+                group.user_set.add(usuario)
+                profesor = Profesor.objects.create(usuario=usuario)
+                profesor.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response(serializer.errors)
+    
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def editar_usuario(request, id_usuario):
+    usuario = Usuario.objects.get(id=id_usuario)
+    rolUsuario = usuario.rol
+    serializer = UsuarioCreateSerializer(data=request.data, instance=usuario)
+    if serializer.is_valid():
+        try:
+            usuarioEditado = serializer.save()
+            if usuarioEditado.rol != rolUsuario:
+                if usuarioEditado.rol == Usuario.DIRECTOR:
+                    profesor = Profesor.objects.select_related("usuario").get(usuario=id_usuario)
+                    profesor.delete()
+                    group = Group.objects.get(name="Directores")
+                    group.user_set.add(usuarioEditado)
+                    director = Director.objects.create(usuario=usuarioEditado)
+                    director.save()
+                elif usuarioEditado.rol == Usuario.PROFESOR:
+                    director = Director.objects.select_related("usuario").get(usuario=id_usuario)
+                    director.delete()
+                    group = Group.objects.get(name="Profesores")
+                    group.user_set.add(usuarioEditado)
+                    profesor = Profesor.objects.create(usuario=usuarioEditado)
+                    profesor.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response(serializer.errors)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def eliminar_usuario(request, id_usuario):
+    usuario = Usuario.objects.get(id=id_usuario)
+    try:
+        if usuario.rol == Usuario.DIRECTOR:
+            director = Director.objects.select_related("usuario").get(usuario=id_usuario)
+            director.delete()
+            group = Group.objects.get(name="Directores")
+            group.user_set.remove(usuario)
+        elif usuario.rol == Usuario.PROFESOR:
+            profesor = Profesor.objects.select_related("usuario").get(usuario=id_usuario)
+            profesor.delete()
+            group = Group.objects.get(name="Profesores")
+            group.user_set.remove(usuario)
+        usuario.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    except:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def obtener_horario(request):
@@ -189,6 +263,16 @@ def horario_profe_dia(request, id_usuario, dia):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def horarios_mañana(request):
+    if request.user.has_perm('horario.view_horario'):
+        horarios = Horario.objects.filter(hora__lte=7)
+        serializer = HorarioSerializer(horarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def horarios_tarde(request):
     if request.user.has_perm('horario.view_horario'):
         horarios = Horario.objects.filter(hora__gt=7)
@@ -206,6 +290,14 @@ def obtener_profesores(request):
         return Response(serializer.data)
     else:
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated]) 
+def obtener_guardias(request):
+    if request.user.has_perm('horario.view_horario'):
+        horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura'
+                                                ).filter(asignatura_nombre__icontains="Guardia").all()
+    
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

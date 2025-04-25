@@ -58,5 +58,6 @@ class Ausencia(models.Model):
     fecha = models.DateField()
     motivo = models.CharField(max_length=200,blank=True)
     horario = models.ForeignKey(Horario, on_delete=models.CASCADE)
+    justificada = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.profesor.username} - {self.fecha}"

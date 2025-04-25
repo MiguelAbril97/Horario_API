@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import *
 from datetime import datetime
+from django.contrib.auth.models import Group
+
 
 
 class AsignaturaSerializer(serializers.ModelSerializer):
@@ -22,6 +24,31 @@ class UsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
         fields = '__all__'
+        
+class UsuarioCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = ['username', 'password', 'email', 'first_name', 'last_name', 'rol']
+    def create(self, validated_data):
+        usuario = Usuario(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            rol=validated_data['rol']
+        )
+        usuario.set_password(validated_data['password'])
+        usuario.save()
+        return usuario
+    def update(self, instance, validated_data):
+        instance.username = validated_data['username']
+        instance.email = validated_data['email']
+        instance.first_name = validated_data['first_name']
+        instance.last_name = validated_data['last_name']
+        instance.rol = validated_data['rol']
+        instance.set_password(validated_data['password'])
+        instance.save()
+        return instance
 
 class HorarioSerializer(serializers.ModelSerializer):
     asignatura = AsignaturaSerializer(read_only=True)
@@ -85,7 +112,7 @@ class AusenciaCreateSerializer(serializers.ModelSerializer):
         instance.fecha=validated_data["fecha"],
         instance.motivo=validated_data["motivo"],
         instance.horario=validated_data["horario"]
-        
+        instance.save()
         return instance
     
 class AusenciaSerializer(serializers.ModelSerializer):
