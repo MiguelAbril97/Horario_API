@@ -112,10 +112,11 @@ def importar_horarios_desde_archivo(request):
                 profesor.delete()
                 group = Group.objects.get(name="Directores")
                 group.user_set.add(usuario)
+                usuario.rol = rol
+                usuario.save()
                 director = Director.objects.create(usuario=usuario)
                 director.save()
                 print("Director: "+nombre+" creado")
-            
             except Exception as e:
                 print(f"Error al actualizar el rol del usuario {usuario.username}: {e}")
         
@@ -188,21 +189,22 @@ def editar_usuario(request, id_usuario):
     serializer = UsuarioCreateSerializer(data=request.data, instance=usuario)
     if serializer.is_valid():
         try:
-            usuarioEditado = serializer.save()
-            if usuarioEditado.rol != rolUsuario:
-                if usuarioEditado.rol == Usuario.DIRECTOR:
+            rolEditado = serializer.validated_data['rol']
+            serializer.save()
+            if rolEditado != rolUsuario:
+                if rolEditado == Usuario.DIRECTOR:
                     profesor = Profesor.objects.select_related("usuario").get(usuario=id_usuario)
                     profesor.delete()
                     group = Group.objects.get(name="Directores")
-                    group.user_set.add(usuarioEditado)
-                    director = Director.objects.create(usuario=usuarioEditado)
+                    group.user_set.add(rolEditado)
+                    director = Director.objects.create(usuario=usuario)
                     director.save()
-                elif usuarioEditado.rol == Usuario.PROFESOR:
+                elif rolEditado == Usuario.PROFESOR:
                     director = Director.objects.select_related("usuario").get(usuario=id_usuario)
                     director.delete()
                     group = Group.objects.get(name="Profesores")
-                    group.user_set.add(usuarioEditado)
-                    profesor = Profesor.objects.create(usuario=usuarioEditado)
+                    group.user_set.add(rolEditado)
+                    profesor = Profesor.objects.create(usuario=usuario)
                     profesor.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
@@ -376,7 +378,7 @@ def obtener_ausencia(request, id_ausencia):
 @permission_classes([IsAuthenticated])
 def editar_ausencia(request, id_ausencia):
     ausencia = Ausencia.objects.get(id=id_ausencia)
-    serializer = AusenciaCreateSerializer(ausencia, data=request.data)
+    serializer = AusenciaCreateSerializer(data=request.data, instance=ausencia)
     if serializer.is_valid():
         try:
             serializer.save()
