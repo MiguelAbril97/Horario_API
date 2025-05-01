@@ -3,12 +3,14 @@ from . import views
 
 urlpatterns = [
     #Horarios
+    path('api/horarios/subir/', views.subir_horario),
     path('api/importar/', views.importar_horarios_desde_archivo),
     path('api/horarios/', views.obtener_horario, name='api_obtener_horario'),
     path('api/horarios/dia/<str:dia>/',views.obtener_horario_dia),
     path('api/horarios/tarde/', views.horarios_tarde, name='api_horarios_tarde'),
     path('api/horarios/profesor/<int:id_usuario>/', views.horario_profe, name='api_horario_profe'),
     path('api/horarios/profesor/<int:id_usuario>/<str:dia>/', views.horario_profe_dia),
+    path('api/horarios/guardias/', views.obtener_guardias),
 
     #Profesores
     path('api/profesores/', views.obtener_profesores, name='api_hobtener_profesores'),

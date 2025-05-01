@@ -17,6 +17,8 @@ from rest_framework import generics
 from django.contrib.auth.models import Group
 from oauth2_provider.models import AccessToken     
 
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -156,6 +158,152 @@ def importar_horarios_desde_archivo(request):
     horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').all()
     serializer = HorarioSerializer(horarios, many=True)
     return Response(serializer.data)
+
+@api_view(['POST'])
+def subir_horario(request):
+    if request.method == "POST":
+        try:
+            Horario.objects.all().delete()
+            Profesor.objects.all().delete()
+            Director.objects.all().delete()
+            Usuario.objects.all().exclude(username=env("SUPERUSER_USERNAME")).delete()
+            Asignatura.objects.all().delete()
+            Aula.objects.all().delete()
+            Grupo.objects.all().delete()
+            Ausencia.objects.all().delete()
+        except Exception as e:
+            print(f"Error al eliminar datos: {e}")
+        archivo = request.FILES['file']
+        contenido = archivo.read().decode('latin-1')
+        lineas = io.StringIO(contenido)
+        lector = csv.reader(lineas, delimiter="\t")
+        try:
+            for i, fila in enumerate(lector, start=1):
+                if len(fila) < 6:
+                    print(f"Fila {i}: estructura de datos inválida.")
+                    continue
+                
+                asignatura_nombre = fila[0].strip()
+                curso = fila[1].strip()
+                codigo = fila[2].strip()
+                profesor_nombre_apellidos = fila[3].strip()
+                dia = fila[4].strip()
+                hora = int(fila[5].strip())
+                try:
+                    apellidos, nombre = [parte.strip() for parte in profesor_nombre_apellidos.split(",", 1)]
+                    apellidos = quitar_tildes(apellidos)
+                    nombre = quitar_tildes(nombre)
+                    
+                    primer_apellido = apellidos.split()[0].lower()
+                    username = (nombre + apellidos).replace(" ", "")
+
+                    email = nombre.lower().replace(" ", "")+"."+primer_apellido+"@iespoligonosur.org"
+                except ValueError:
+                    print(f"Error en {i}")
+                    nombre = profesor_nombre_apellidos
+                    apellidos = profesor_nombre_apellidos
+                    username = profesor_nombre_apellidos
+                    email = nombre.lower()+"."+primer_apellido+"@iespoligonosur.org"
+                
+                usuario = Usuario.objects.filter(username=username).first()
+                
+                if asignatura_nombre.find("Equipo Directivo") != -1 :
+                        rol = Usuario.DIRECTOR
+                else:
+                        rol = Usuario.PROFESOR
+                
+                if not usuario:
+                    try:
+                        usuario = Usuario(
+                            username=username,
+                            first_name=nombre,
+                            last_name=apellidos,
+                            email=email,
+                            rol=rol
+                        )
+                        usuario.set_password("changeme123")
+                        usuario.save()
+                        
+                        if rol == Usuario.DIRECTOR:
+                            group = Group.objects.get(name="Directores")
+                            group.user_set.add(usuario)
+                            director = Director.objects.create(usuario=usuario)
+                            director.save()
+                            print("Director: "+nombre+" creado")
+                        else:
+                            group = Group.objects.get(name="Profesores")
+                            group.user_set.add(usuario)
+                            profesorado = Profesor.objects.create(usuario=usuario)
+                            profesorado.save()
+                            print("Profesor: "+nombre+" creado")
+
+                    except Exception as e:
+                        print(f"Error al crear el usuario: {e}")
+                
+                #Si ya se habia creado el usuario como profesor se elimina del grupo profesores y se añade al directores
+                elif rol == Usuario.DIRECTOR and usuario.rol != rol:
+                    try:
+                        profesor = Profesor.objects.select_related("usuario").get(usuario=usuario.id)
+                        profesor.delete()
+                        group = Group.objects.get(name="Directores")
+                        group.user_set.add(usuario)
+                        usuario.rol = rol
+                        usuario.save()
+                        director = Director.objects.create(usuario=usuario)
+                        director.save()
+                        print("Director: "+nombre+" creado")
+                    except Exception as e:
+                        print(f"Error al actualizar el rol del usuario {usuario.username}: {e}")
+                
+                
+                asignatura = Asignatura.objects.filter(nombre=asignatura_nombre).first()
+                if not asignatura:
+                    asignatura = Asignatura.objects.create(nombre=asignatura_nombre)
+
+                aula = Aula.objects.filter(numero=codigo).first()
+                if not aula:
+                    aula = Aula.objects.create(numero=codigo)
+
+                grupo = Grupo.objects.filter(nombre=curso).first()
+                if not grupo:
+                    grupo = Grupo.objects.create(nombre=curso)
+
+                dia_filter = Horario.objects.select_related(
+                    'asignatura','aula','grupo','profesor').filter(
+                    dia=dia,asignatura=asignatura.id,aula=aula.id,grupo=grupo.id,hora=hora,profesor=usuario.id)
+                    
+                if(not dia_filter):
+                    data = {
+                        "dia": dia,
+                        "asignatura": asignatura.id,
+                        "aula": aula.id,
+                        "grupo": grupo.id,
+                        "hora": hora,
+                        "profesor": usuario.id,
+                    }
+                    serializer = HorarioCreateSerializer(data=data)
+                    if serializer.is_valid():
+                        serializer.save()
+                        print(f"Horario creado")
+                    else:
+                        print(f"Fila {i}: {serializer.errors}")
+            return Response(status=status.HTTP_200_OK)
+        except Exception as e:
+            print(e)
+            return Response(repr(e), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+def importar_horarios_cliente(subido):
+    
+    with open(subido, encoding='latin-1') as archivo:
+        contenido = archivo.read()
+    
+    lineas = io.StringIO(contenido)
+    lector = csv.reader(lineas, delimiter="\t")
+
+
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -299,6 +447,10 @@ def obtener_guardias(request):
     if request.user.has_perm('horario.view_horario'):
         horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura'
                                                 ).filter(asignatura_nombre__icontains="Guardia").all()
+        serializer = HorarioSerializer(horarios, many=True)
+        return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
     
 
 @api_view(['GET'])
