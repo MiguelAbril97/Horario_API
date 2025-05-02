@@ -443,10 +443,10 @@ def obtener_profesores(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated]) 
-def obtener_guardias(request):
+def obtener_guardias(request, dia):
     if request.user.has_perm('horario.view_horario'):
-        horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura'
-                                                ).filter(asignatura_nombre__icontains="Guardia").all()
+        horarios = Horario.objects.select_related('profesor', 'grupo', 'aula', 'asignatura'
+                            ).filter(asignatura__nombre__icontains="Guardia", dia=dia).all()
         serializer = HorarioSerializer(horarios, many=True)
         return Response(serializer.data)
     else:
@@ -489,7 +489,7 @@ def crear_ausencia(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def obtener_ausencias(request):
-    if request.user.has_perm('horario.view_ausencias'):
+    if request.user.has_perm('horario.view_ausencia'):
         ausencias = Ausencia.objects.select_related('profesor','horario').all()
         serializer = AusenciaSerializer(ausencias, many=True)
         return Response(serializer.data)
@@ -499,10 +499,13 @@ def obtener_ausencias(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def obtener_ausencias_profesor(request, id_profesor):
-    if request.user.has_perm('horario.view_ausencias'):
-        ausencias = Ausencia.objects.select_related('profesor','horario').filter(profesor=id_profesor).all()
-        serializer = AusenciaSerializer(ausencias, many=True)
-        return Response(serializer.data)
+    if request.user.has_perm('horario.view_ausencia'):
+        if request.user.groups.filter(name="Directores").exists() or request.user.id == id_profesor:
+            ausencias = Ausencia.objects.select_related('profesor', 'horario').filter(profesor=id_profesor).all()
+            serializer = AusenciaSerializer(ausencias, many=True)
+            return Response(serializer.data)
+        else:
+            return Response(status=status.HTTP_403_FORBIDDEN)
     else:
         return Response(status=status.HTTP_400_BAD_REQUEST)
 

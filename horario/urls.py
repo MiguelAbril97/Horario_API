@@ -10,7 +10,7 @@ urlpatterns = [
     path('api/horarios/tarde/', views.horarios_tarde, name='api_horarios_tarde'),
     path('api/horarios/profesor/<int:id_usuario>/', views.horario_profe, name='api_horario_profe'),
     path('api/horarios/profesor/<int:id_usuario>/<str:dia>/', views.horario_profe_dia),
-    path('api/horarios/guardias/', views.obtener_guardias),
+    path('api/horarios/guardias/<str:dia>/', views.obtener_guardias),
 
     #Profesores
     path('api/profesores/', views.obtener_profesores, name='api_hobtener_profesores'),
