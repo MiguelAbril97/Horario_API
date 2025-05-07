@@ -11,13 +11,9 @@ import io
 import environ
 import os
 from pathlib import Path
-from django.contrib.auth.hashers import make_password
 import unicodedata
-from rest_framework import generics
 from django.contrib.auth.models import Group
 from oauth2_provider.models import AccessToken     
-
-from rest_framework.parsers import MultiPartParser, FormParser
 
 
 
