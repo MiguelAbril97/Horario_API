@@ -13,7 +13,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
+import environ
+import os
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'), True)
+env = environ.Env()
 
 
 # Quick-start development settings - unsuitable for production
@@ -28,9 +34,38 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 INTERNAL_IPS = ["127.0.0.1"]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+]
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173"
+]
+
 OAUTH2_PROVIDER = {
-    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Acceso a los grupos'}
+    'SCOPES': {
+        'read': 'Read scope',
+        'write': 'Write scope',
+        'groups': 'Acceso a los grupos',
+    },
+  
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 3600,
+
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 86400 * 7, # 7 días
+
+    'AUTHORIZATION_CODE_EXPIRE_SECONDS': 300,
+
+    # ¿Rotar refresh tokens a cada uso?
+    'ROTATE_REFRESH_TOKEN': True,
 }
+
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -93,10 +128,6 @@ TEMPLATES = [
     },
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173"
-]
 
 WSGI_APPLICATION = 'mysite.wsgi.application'
 
@@ -156,3 +187,11 @@ STATIC_ROOT = BASE_DIR / 'static'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'horario.Usuario'
+
+#Configuracion email
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = env('EMAIL_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_PASSWORD')
