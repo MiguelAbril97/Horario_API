@@ -391,6 +391,30 @@ def obtener_horario(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def obtener_horario_aula(request, aula):
+    if request.user.has_perm('horario.view_horario'):
+        id_aula = Aula.objects.filter(numero__icontains=aula).first()
+        if id_aula:
+            horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').filter(aula=id_aula.id).all()
+            serializer = HorarioSerializer(horarios, many=True)
+            return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def obtener_horario_grupo(request, grupo):
+    if request.user.has_perm('horario.view_horario'):
+        id_grupo = Grupo.objects.filter(nombre__icontains=grupo).first()
+        if id_grupo:
+            horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').filter(grupo=id_grupo.id).all()
+            serializer = HorarioSerializer(horarios, many=True)
+            return Response(serializer.data)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def horario_profe(request, id_usuario):
     if request.user.has_perm('horario.view_horario'):
         horarios = Horario.objects.select_related('profesor','grupo','aula','asignatura').filter(profesor=id_usuario).all()
