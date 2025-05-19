@@ -14,6 +14,9 @@ urlpatterns = [
     path('api/horarios/aula/<str:aula>/', views.obtener_horario_aula),
     path('api/horarios/grupo/<str:grupo>/', views.obtener_horario_grupo),
 
+    path('api/aulas/lista/', views.lista_aulas, name='lista_aulas'),
+    path('api/grupos/lista/', views.lista_grupos, name='lista_grupos'),
+    
     #Profesores
     path('api/profesores/', views.obtener_profesores, name='api_hobtener_profesores'),
     path('api/profesor/<int:id_usuario>/', views.obtener_profesor, name='api_obtener_profesor'),

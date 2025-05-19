@@ -456,6 +456,24 @@ def horarios_tarde(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def lista_aulas(request):
+    if request.user.has_perm('horario.view_aula'):
+        aulas = Aula.objects.all().values_list('numero', flat=True)
+        return Response(list(aulas))
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def lista_grupos(request):
+    if request.user.has_perm('horario.view_grupo'):
+        grupos = Grupo.objects.all().values_list('nombre', flat=True)
+        return Response(list(grupos))
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def obtener_profesores(request):
     if request.user.has_perm('horario.view_usuario'):
         usuarios = Usuario.objects.all().order_by('last_name')
