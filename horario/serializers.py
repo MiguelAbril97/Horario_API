@@ -71,6 +71,19 @@ class AusenciaCreateSerializer(serializers.ModelSerializer):
         model = Ausencia
         fields = ['profesor', 'fecha', 'motivo', 'horario']
 
+    def validate(self, data):
+        profesor = data.get('profesor')
+        fecha = data.get('fecha')
+        horario = data.get('horario')
+        
+        control = Ausencia.objects.filter(profesor=profesor, fecha=fecha, horario=horario).first()
+        if not control is None:
+            if (not self.instance is None and control.id == self.instance.id):
+                pass
+            else:
+                raise serializers.ValidationError("Ya existe una ausencia registrada para este profesor, fecha y horario.")
+        return data
+        
     def validate_motivo(self, motivo):
         if len(motivo) > 200:
             raise serializers.ValidationError("El motivo no puede superar los 200 caracteres.")

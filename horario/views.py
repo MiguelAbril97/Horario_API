@@ -466,7 +466,7 @@ def lista_aulas(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def lista_grupos(request):
-    if request.user.has_perm('horario.view_grupo'):
+    if request.user.has_perm('horario.view_horario'):
         grupos = Grupo.objects.all().values_list('nombre', flat=True)
         return Response(list(grupos))
     else:
@@ -529,7 +529,23 @@ def crear_ausencia(request):
             return Response(serializer.errors)
     else:
         return Response(status=status.HTTP_400_BAD_REQUEST)
-       
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def justificar_ausencia(request, id_ausencia):
+    if request.user.has_perm('horario.add_ausencia'):
+        ausencia = Ausencia.objects.get(id=id_ausencia)
+        if ausencia.justificada == False:
+            ausencia.justificada = True
+            ausencia.save()
+            Response(status=status.HTTP_200_OK)
+        else:
+            ausencia.justificada = False
+            ausencia.save()
+            Response(status=status.HTTP_200_OK)
+    else:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+    
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def obtener_ausencias(request):
@@ -544,7 +560,8 @@ def obtener_ausencias(request):
 @permission_classes([IsAuthenticated])
 def obtener_ausencias_profesor(request, id_profesor):
     if request.user.has_perm('horario.view_ausencia'):
-        if request.user.groups.filter(name="Directores").exists() or request.user.id == id_profesor:
+        usuario = Usuario.objects.get(id=id_profesor)
+        if usuario.rol == 1 or usuario.id == id_profesor:
             ausencias = Ausencia.objects.select_related('profesor', 'horario').filter(profesor=id_profesor).all()
             serializer = AusenciaSerializer(ausencias, many=True)
             return Response(serializer.data)

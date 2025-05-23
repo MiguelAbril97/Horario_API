@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/ausencias/fecha/<str:fecha>/', views.obtener_ausencias_fecha, name='api_obtener_ausencias_fecha'),
     path('api/ausencias/crear/', views.crear_ausencia, name='api_crear_ausencia'),
     path('api/ausencias/editar/<int:id_ausencia>/', views.editar_ausencia, name='api_editar_ausencia'),
+    path('api/ausencias/justificar/<int:id_ausencia>/', views.justificar_ausencia, name='api_justificar_ausencia'),
     path('api/ausencias/eliminar/<int:id_ausencia>/', views.eliminar_ausencia, name='api_eliminar_ausencia'),
     #Enviar parte de ausencias
     path('api/ausencias/enviar-parte/', views.enviar_pdf_por_correo),
