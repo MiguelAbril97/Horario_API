@@ -7,3 +7,4 @@ django-environ~=0.11.2
 djangorestframework~=3.14.0
 django-oauth-toolkit~=3.0.1
 django-cors-headers~=4.3.1
+django-rest-passwordreset~=1.5.0

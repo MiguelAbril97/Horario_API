@@ -77,6 +77,9 @@ REST_FRAMEWORK = {
     ),
 }
 
+DJANGO_REST_PASSWORDRESET = {
+    'EMAIL_RESET_PASSWORD': 'password_reset_email.html'
+}   
 
 # Application definition
 
@@ -95,6 +98,7 @@ INSTALLED_APPS = [
     'horario',
     'corsheaders',
     'oauth2_provider',
+    'django_rest_passwordreset',
 
 ]
 

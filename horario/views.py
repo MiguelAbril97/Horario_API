@@ -538,11 +538,11 @@ def justificar_ausencia(request, id_ausencia):
         if ausencia.justificada == False:
             ausencia.justificada = True
             ausencia.save()
-            Response(status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_200_OK)
         else:
             ausencia.justificada = False
             ausencia.save()
-            Response(status=status.HTTP_200_OK)
+            return Response(status=status.HTTP_200_OK)
     else:
         return Response(status=status.HTTP_400_BAD_REQUEST)
     
@@ -628,13 +628,14 @@ def enviar_pdf_por_correo(request):
         pdf_file = request.FILES.get('pdf')
         destinatario = env('EMAIL_USER') 
         #request.data.get('email')
-
+        fecha = datetime.now().date()
+        fecha = fecha.strftime("%d/%m/%Y")
         if not pdf_file or not destinatario:
             return Response({'error': 'Falta el archivo PDF o el email de destino.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             email = EmailMessage(
-                subject='Envío de PDF',
+                subject='Parte de ausencias del ' + fecha,
                 body='Adjunto el PDF solicitado.',
                 from_email=None,  # Usará DEFAULT_FROM_EMAIL
                 to=[destinatario]
