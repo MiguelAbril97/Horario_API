@@ -96,11 +96,13 @@ class AusenciaCreateSerializer(serializers.ModelSerializer):
     
     def validate_horario_fecha(self, horario,fecha):
         ausencia = Ausencia.objects.filter(horario=horario, fecha=fecha).first()
-        if(not ausencia is None):
-            if(not self.instance is None and ausencia.id == self.instance,id):
+        if not ausencia is None:
+            if not self.instance is None and ausencia.id == self.instance.id:
                 pass
             else:
-                raise serializers.ValidationError("Ya existe una ausencia registrada para este horario y fecha.")
+                raise serializers.ValidationError(
+                    "Ya existe una ausencia registrada para este horario y fecha."
+                )
         return horario
     
     def create(self, validated_data):
@@ -121,10 +123,10 @@ class AusenciaCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"fecha": "Formato de fecha inválido. Usa YYYY-MM-DD."})
 
 
-        instance.profesor=validated_data["profesor"],
-        instance.fecha=validated_data["fecha"],
-        instance.motivo=validated_data["motivo"],
-        instance.horario=validated_data["horario"]
+        instance.profesor = validated_data["profesor"]
+        instance.fecha = validated_data["fecha"]
+        instance.motivo = validated_data["motivo"]
+        instance.horario = validated_data["horario"]
         instance.save()
         return instance
     
