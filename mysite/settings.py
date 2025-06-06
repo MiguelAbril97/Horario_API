@@ -91,7 +91,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'debug_toolbar',
-    'django_seed',
     'django_bootstrap5',
     'django_bootstrap_icons',
     'rest_framework',
