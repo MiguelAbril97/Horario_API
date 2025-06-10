@@ -16,7 +16,7 @@ COPY . /app/
 EXPOSE 8000
 
 #En producción:
-CMD ["gunicorn", "horario.wsgi:application", "--bind", "0.0.0.0:8000"]
+#CMD ["gunicorn", "horario.wsgi:application", "--bind", "0.0.0.0:8000"]
 
 # desarrollo:
-# CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
